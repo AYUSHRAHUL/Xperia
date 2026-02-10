@@ -28,11 +28,43 @@ def get_tasks():
 
     items = []
     for doc in db.issues.find(query).sort("updatedAt", -1):
-        doc["id"] = str(doc["_id"])
-        doc.pop("_id", None)
-        doc["createdAt"] = doc["createdAt"].isoformat() if doc.get("createdAt") else None
-        doc["updatedAt"] = doc["updatedAt"].isoformat() if doc.get("updatedAt") else None
-        items.append(doc)
+        try:
+            doc["id"] = str(doc["_id"])
+            doc.pop("_id", None)
+            doc["createdAt"] = doc["createdAt"].isoformat() if doc.get("createdAt") else None
+            doc["updatedAt"] = doc["updatedAt"].isoformat() if doc.get("updatedAt") else None
+            
+            if "reportedBy" in doc and isinstance(doc["reportedBy"], ObjectId):
+                doc["reportedBy"] = str(doc["reportedBy"])
+            if "assignedTo" in doc and isinstance(doc["assignedTo"], ObjectId):
+                doc["assignedTo"] = str(doc["assignedTo"])
+                
+            items.append(doc)
+        except Exception:
+            continue
+    return jsonify(items)
+
+
+@worker_bp.get("/available-tasks")
+@auth_required(roles=["worker"])
+def get_available_tasks():
+    """Get verified issues that are not assigned to anyone."""
+    query = {"status": "VERIFIED", "assignedTo": None}
+    
+    items = []
+    for doc in db.issues.find(query).sort("createdAt", -1):
+        try:
+            doc["id"] = str(doc["_id"])
+            doc.pop("_id", None)
+            doc["createdAt"] = doc["createdAt"].isoformat() if doc.get("createdAt") else None
+            doc["updatedAt"] = doc["updatedAt"].isoformat() if doc.get("updatedAt") else None
+            
+            if "reportedBy" in doc and isinstance(doc["reportedBy"], ObjectId):
+                doc["reportedBy"] = str(doc["reportedBy"])
+            
+            items.append(doc)
+        except Exception:
+            continue
     return jsonify(items)
 
 

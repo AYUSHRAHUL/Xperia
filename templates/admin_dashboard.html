@@ -7,6 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -118,6 +121,12 @@
       </div>
     </div>
 
+    <!-- Live Map -->
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Live Urban Issues Map</h2>
+      <div id="map" class="h-[500px] w-full rounded-lg border border-gray-200 z-0"></div>
+    </div>
+
 
   </div>
 
@@ -195,8 +204,10 @@
     const token = localStorage.getItem('up_token');
     const user = JSON.parse(localStorage.getItem('up_user') || '{}');
     let allIssues = [];
+    let allWorkers = [];
     let statusChartInstance = null;
     let categoryChartInstance = null;
+    let map = null;
 
     if (!token || user.role !== 'admin') {
       window.location.href = '/login';
@@ -299,6 +310,15 @@
               <p class="text-gray-900 mt-1">${issue.description}</p>
             </div>
             
+            ${issue.imageUrl ? `
+            <div>
+              <label class="text-sm font-medium text-gray-700">Photo</label>
+              <div class="mt-1 rounded-lg overflow-hidden h-64 bg-gray-100 border border-gray-200">
+                <img src="${issue.imageUrl}" alt="Issue Photo" class="w-full h-full object-contain">
+              </div>
+            </div>
+            ` : ''}
+
             <div>
               <label class="text-sm font-medium text-gray-700">Location</label>
               <p class="text-gray-900 mt-1">${issue.location?.address || 'Not specified'}</p>
@@ -308,6 +328,19 @@
               <label class="text-sm font-medium text-gray-700">Current Status</label>
               <p class="mt-1"><span class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(issue.status)}">${issue.status}</span></p>
             </div>
+
+            ${allWorkers.length > 0 && issue.status !== 'CLOSED' ? `
+            <div>
+                <label class="text-sm font-medium text-gray-700">Assign Worker</label>
+                <div class="flex gap-2 mt-1">
+                    <select id="worker-select" class="flex-1 rounded-lg border-gray-300 text-sm p-2 border">
+                        <option value="">Select Worker</option>
+                        ${allWorkers.map(w => `<option value="${w.id}" ${issue.assignedTo === w.id ? 'selected' : ''}>${w.name}</option>`).join('')}
+                    </select>
+                    <button onclick="assignWorker('${issue.id}')" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium">Assign</button>
+                </div>
+            </div>
+            ` : ''}
             
             ${issue.status === 'REPORTED' ? `
               <button onclick="verifyIssue('${issue.id}')" class="w-full px-4 py-3 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700">
@@ -363,6 +396,44 @@
       }
     }
 
+    async function loadWorkers() {
+      try {
+        const res = await fetch('/api/admin/workers', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          allWorkers = await res.json();
+        }
+      } catch (e) {
+        console.error('Failed to load workers', e);
+      }
+    }
+
+    async function assignWorker(issueId) {
+      const select = document.getElementById('worker-select');
+      const workerId = select.value;
+      if (!workerId) return showToast('Please select a worker', true);
+
+      try {
+        const res = await fetch('/api/admin/assign-issue', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ issueId, workerId })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Issue assigned successfully');
+          closeModal();
+          loadData();
+        } else {
+          showToast(data.error || 'Assignment failed', true);
+        }
+      } catch (e) { showToast('Network error', true); }
+    }
+
     function getStatusColor(status) {
       const colors = {
         'REPORTED': 'bg-blue-100 text-blue-700',
@@ -408,6 +479,9 @@
 
         // Render table
         renderIssuesTable(allIssues);
+
+        // Render map
+        initMap(allIssues);
 
       } catch (e) {
         console.error('Failed to load data:', e);
@@ -636,7 +710,55 @@
       } catch (e) { }
     }
 
+    function initMap(issues) {
+      const container = L.DomUtil.get('map');
+      if (container != null) {
+        container._leaflet_id = null;
+      }
+
+      if (map) {
+        map.remove();
+        map = null;
+      }
+
+      // Bangalore center default
+      map = L.map('map').setView([12.9716, 77.5946], 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      if (!issues || issues.length === 0) return;
+
+      issues.forEach(issue => {
+        if (!issue.location || !issue.location.lat) return;
+
+        const color = getStatusColorCode(issue.status);
+        // Simple circle marker or default pointer
+        // Using default marker for now
+
+        L.marker([issue.location.lat, issue.location.lng])
+          .addTo(map)
+          .bindPopup(`
+                <div class="p-2 min-w-[200px]">
+                    <h3 class="font-bold text-sm text-gray-900">${issue.title}</h3>
+                    <p class="text-xs text-gray-500 mb-1">${issue.category}</p>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border">
+                        ${issue.status}
+                    </span>
+                    <p class="text-xs text-gray-600 mt-2">${issue.location.address || ''}</p>
+                </div>
+             `);
+      });
+    }
+
+    function getStatusColorCode(status) {
+      // Helper if we want colored circles later
+      return 'blue';
+    }
+
     // Load initial data
+    loadWorkers();
     loadData();
     loadNotifications();
     setInterval(loadNotifications, 30000);

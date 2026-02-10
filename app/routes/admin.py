@@ -22,8 +22,10 @@ def all_issues():
             "title": doc.get("title"),
             "category": doc.get("category"),
             "description": doc.get("description"),
+            "imageUrl": doc.get("imageUrl"),
             "status": doc.get("status"),
             "location": doc.get("location"),
+            "assignedTo": str(doc.get("assignedTo")) if doc.get("assignedTo") else None,
             "createdAt": doc.get("createdAt").isoformat() if doc.get("createdAt") else None,
             "updatedAt": doc.get("updatedAt").isoformat() if doc.get("updatedAt") else None,
         })

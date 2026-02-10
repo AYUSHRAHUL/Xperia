@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * {
       font-family: 'Inter', sans-serif;
@@ -98,34 +101,45 @@
 
     <!-- Tasks List -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-      <div class="border-b border-gray-200 px-6 py-4">
-        <h2 class="text-xl font-bold text-gray-900">My Tasks</h2>
+      <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-900">Task Management</h2>
+        <div class="flex gap-2 text-sm bg-gray-100 p-1 rounded-lg">
+          <button onclick="setView('list')" id="btn-view-list"
+            class="px-4 py-1.5 rounded-md bg-white text-blue-600 shadow-sm font-medium transition-all">List
+            View</button>
+          <button onclick="setView('map')" id="btn-view-map"
+            class="px-4 py-1.5 rounded-md text-gray-500 hover:text-gray-900 font-medium transition-all">Map
+            View</button>
+        </div>
       </div>
 
       <div class="p-6">
-        <!-- Filter Tabs -->
-        <div class="flex gap-4 mb-6 border-b border-gray-200">
+        <!-- Filter Tabs (List View Only) -->
+        <div id="filter-container" class="flex gap-4 mb-6 border-b border-gray-200">
           <button onclick="filterTasks('all')" id="filter-all"
             class="pb-3 border-b-2 border-blue-600 text-blue-600 font-medium text-sm">
             All Tasks
           </button>
           <button onclick="filterTasks('assigned')" id="filter-assigned"
             class="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
-            Assigned
+            My Assigned
           </button>
-          <button onclick="filterTasks('in-progress')" id="filter-in-progress"
+          <button onclick="filterTasks('available')" id="filter-available"
             class="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
-            In Progress
-          </button>
-          <button onclick="filterTasks('resolved')" id="filter-resolved"
-            class="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
-            Resolved
+            Available (Open)
           </button>
         </div>
 
-        <!-- Tasks List -->
-        <div id="tasks-list" class="space-y-4">
-          <p class="text-gray-500 text-center py-8">Loading tasks...</p>
+        <!-- List View -->
+        <div id="view-list-content">
+          <div id="tasks-list" class="space-y-4">
+            <p class="text-gray-500 text-center py-8">Loading tasks...</p>
+          </div>
+        </div>
+
+        <!-- Map View -->
+        <div id="view-map-content" class="hidden">
+          <div id="map" class="h-[500px] w-full rounded-lg border border-gray-200 z-0"></div>
         </div>
       </div>
     </div>
@@ -216,9 +230,9 @@
       currentFilter = filter;
 
       // Reset all filter buttons
-      ['all', 'assigned', 'in-progress', 'resolved'].forEach(f => {
+      ['all', 'assigned', 'available', 'in-progress', 'resolved'].forEach(f => {
         const btn = document.getElementById('filter-' + f);
-        btn.className = 'pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm';
+        if (btn) btn.className = 'pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm';
       });
 
       // Highlight active filter
@@ -232,6 +246,8 @@
 
       if (currentFilter === 'assigned') {
         filtered = allTasks.filter(t => t.status === 'ASSIGNED');
+      } else if (currentFilter === 'available') {
+        filtered = allTasks.filter(t => t.status === 'VERIFIED' && !t.assignedTo);
       } else if (currentFilter === 'in-progress') {
         filtered = allTasks.filter(t => t.status === 'IN_PROGRESS');
       } else if (currentFilter === 'resolved') {
@@ -282,6 +298,15 @@
               <p class="text-gray-900 mt-1">${task.description}</p>
             </div>
             
+            ${task.imageUrl ? `
+            <div>
+              <label class="text-sm font-medium text-gray-700">Photo</label>
+              <div class="mt-1 rounded-lg overflow-hidden h-64 bg-gray-100 border border-gray-200">
+                <img src="${task.imageUrl}" alt="Task Photo" class="w-full h-full object-contain">
+              </div>
+            </div>
+            ` : ''}
+
             <div>
               <label class="text-sm font-medium text-gray-700">Location</label>
               <p class="text-gray-900 mt-1">${task.location?.address || 'Not specified'}</p>
@@ -343,34 +368,139 @@
         'ASSIGNED': 'bg-amber-100 text-amber-700',
         'IN_PROGRESS': 'bg-blue-100 text-blue-700',
         'RESOLVED': 'bg-emerald-100 text-emerald-700',
-        'CLOSED': 'bg-gray-100 text-gray-700'
+        'CLOSED': 'bg-gray-100 text-gray-700',
+        'VERIFIED': 'bg-purple-100 text-purple-700'
       };
       return colors[status] || 'bg-gray-100 text-gray-700';
     }
 
+
+
+    // Map & View Logic
+    let map = null;
+    let currentView = 'list';
+
+    function setView(view) {
+      currentView = view;
+      const listBtn = document.getElementById('btn-view-list');
+      const mapBtn = document.getElementById('btn-view-map');
+      const listContent = document.getElementById('view-list-content');
+      const mapContent = document.getElementById('view-map-content');
+      const filterContainer = document.getElementById('filter-container');
+
+      if (view === 'list') {
+        listBtn.className = 'px-4 py-1.5 rounded-md bg-white text-blue-600 shadow-sm font-medium transition-all';
+        mapBtn.className = 'px-4 py-1.5 rounded-md text-gray-500 hover:text-gray-900 font-medium transition-all';
+        listContent.classList.remove('hidden');
+        mapContent.classList.add('hidden');
+        filterContainer.classList.remove('hidden');
+      } else {
+        listBtn.className = 'px-4 py-1.5 rounded-md text-gray-500 hover:text-gray-900 font-medium transition-all';
+        mapBtn.className = 'px-4 py-1.5 rounded-md bg-white text-blue-600 shadow-sm font-medium transition-all';
+        listContent.classList.add('hidden');
+        mapContent.classList.remove('hidden');
+        filterContainer.classList.add('hidden');
+
+        // Initialize map if needed
+        if (!map) initMap();
+      }
+    }
+
+    function initMap() {
+      if (allTasks.length === 0) return;
+
+      // Find center (default or first task)
+      const center = allTasks[0]?.location || { lat: 12.9716, lng: 77.5946 };
+      map = L.map('map').setView([center.lat, center.lng], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Add markers
+      allTasks.forEach(task => {
+        if (!task.location) return;
+
+        const isAssigned = task.status !== 'VERIFIED'; // Verified means available/unassigned here
+        const color = isAssigned ? 'blue' : 'gray';
+
+        // Custom marker logic (using default icons for simplicity, but maybe coloring logic if possible)
+        // Leaflet default icon is blue. We can use popup content to distinguish.
+
+        const marker = L.marker([task.location.lat, task.location.lng])
+          .addTo(map)
+          .bindPopup(`
+                    <div class="p-2">
+                        <h3 class="font-bold text-sm">${task.title}</h3>
+                        <p class="text-xs text-gray-600 mb-1">${task.category}</p>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-medium ${isAssigned ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">
+                            ${task.status}
+                        </span>
+                        <button onclick="openTask('${task.id}')" class="block mt-2 text-xs text-blue-600 hover:underline">View Details</button>
+                    </div>
+                `);
+      });
+    }
+
     async function loadTasks() {
       try {
-        const res = await fetch('/api/worker/tasks', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const tasks = await res.json();
+        const headers = { 'Authorization': `Bearer ${token}` };
 
-        allTasks = tasks.map(t => ({ ...t, id: t._id || t.id }));
+        // Fetch assigned
+        const resAssigned = await fetch('/api/worker/tasks', { headers });
+        let assigned = [];
+        if (resAssigned.ok) {
+          assigned = await resAssigned.json();
+        } else {
+          if (resAssigned.status === 401) window.location.href = '/login';
+          console.warn('Assigned fetch failed', resAssigned.status);
+        }
+
+        // Fetch available
+        const resAvailable = await fetch('/api/worker/available-tasks', { headers });
+        let available = [];
+        if (resAvailable.ok) {
+          available = await resAvailable.json();
+        } else {
+          console.warn('Available fetch failed', resAvailable.status);
+        }
+
+        if (!Array.isArray(assigned)) assigned = [];
+        if (!Array.isArray(available)) available = [];
+
+        // Merge, marking available ones
+        // Note: 'assigned' list has status ASSIGNED/IN_PROGRESS/RESOLVED
+        // 'available' list has VERIFIED (and unassigned)
+
+        allTasks = [...assigned, ...available].map(t => ({ ...t, id: t._id || t.id }));
 
         // Update stats
-        document.getElementById('stat-assigned').textContent = tasks.filter(t => t.status === 'ASSIGNED').length;
-        document.getElementById('stat-progress').textContent = tasks.filter(t => t.status === 'IN_PROGRESS').length;
-        document.getElementById('stat-completed').textContent = tasks.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+        document.getElementById('stat-assigned').textContent = assigned.filter(t => t.status === 'ASSIGNED').length;
+        document.getElementById('stat-progress').textContent = assigned.filter(t => t.status === 'IN_PROGRESS').length;
+        document.getElementById('stat-completed').textContent = assigned.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
 
-        const total = tasks.length;
-        const completed = tasks.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+        // Success rate
+        const total = assigned.length;
+        const completed = assigned.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
         const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
         document.getElementById('stat-rate').textContent = rate + '%';
 
+        // Clear loading state if rendered
+        const listContainer = document.getElementById('tasks-list');
+        if (listContainer && listContainer.innerHTML.includes('Loading tasks')) {
+          listContainer.innerHTML = '';
+        }
+
         renderTasks();
+
+        if (currentView === 'map' && map) {
+          map.remove(); // Re-init
+          map = null;
+          initMap();
+        }
       } catch (e) {
         console.error('Failed to load tasks:', e);
-        document.getElementById('tasks-list').innerHTML = '<p class="text-red-500 text-center py-8">Failed to load tasks. Please refresh the page.</p>';
+        document.getElementById('tasks-list').innerHTML = `<p class="text-red-500 text-center py-8">Failed to load tasks: ${e.message}. Please refresh.</p>`;
       }
     }
 
