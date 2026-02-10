@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Urban Pulse — Citizen Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    #map {
+      height: 300px;
+      border-radius: 0.5rem;
+      z-index: 1;
+    }
+
+    .leaflet-container {
+      border-radius: 0.5rem;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between py-4 px-6">
+      <div class="flex items-center gap-3">
+        <div
+          class="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-700 flex items-center justify-center font-bold text-white">
+          UP
+        </div>
+        <div>
+          <div class="font-bold text-lg text-gray-900">Citizen Portal</div>
+          <p class="text-xs text-gray-600">Report & Track Impact</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <!-- Notifications -->
+        <div class="relative">
+          <button id="notif-btn" onclick="toggleNotifications()"
+            class="p-2 text-gray-500 hover:text-emerald-600 relative rounded-full hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span id="notif-badge"
+              class="hidden absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full border border-white animate-pulse"></span>
+          </button>
+
+          <!-- Dropdown -->
+          <div id="notif-dropdown"
+            class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50">
+            <div class="p-3 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+              <h3 class="font-semibold text-sm text-gray-800">Notifications</h3>
+              <button onclick="markAllRead()" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">Mark
+                all read</button>
+            </div>
+            <div id="notif-list" class="max-h-80 overflow-y-auto divide-y divide-gray-50">
+              <div class="p-8 text-center">
+                <p class="text-sm text-gray-400">No notifications yet</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <span id="user-name" class="text-sm text-gray-700 font-medium"></span>
+        <button onclick="logout()"
+          class="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Welcome Section -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome, <span id="welcome-name"></span>!</h1>
+      <p class="text-gray-600">Report issues, track your impact, and contribute to a sustainable city.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">My Reports</p>
+        <p class="text-3xl font-bold text-gray-900" id="stat-reports">0</p>
+      </div>
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">Resolved</p>
+        <p class="text-3xl font-bold text-emerald-600" id="stat-resolved">0</p>
+      </div>
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">My Points</p>
+        <p class="text-3xl font-bold text-blue-600" id="stat-points">0</p>
+      </div>
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">Impact Score</p>
+        <p class="text-3xl font-bold text-violet-600" id="stat-impact">0</p>
+      </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+      <!-- Tab Headers -->
+      <div class="border-b border-gray-200">
+        <nav class="flex gap-8 px-6">
+          <button onclick="switchTab('report')" id="tab-report"
+            class="py-4 border-b-2 border-emerald-600 text-emerald-600 font-medium text-sm">
+            Report Issue
+          </button>
+          <button onclick="switchTab('my-issues')" id="tab-my-issues"
+            class="py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
+            My Reports
+          </button>
+          <button onclick="switchTab('impact')" id="tab-impact"
+            class="py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
+            My Impact
+          </button>
+          <button onclick="switchTab('leaderboard')" id="tab-leaderboard"
+            class="py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
+            🏆 Leaderboard
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="p-6">
+        <!-- Report Issue Tab -->
+        <div id="content-report">
+          <h2 class="text-xl font-bold text-gray-900 mb-6">Report New Issue</h2>
+          <form id="report-form" class="space-y-6 max-w-2xl">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Issue Title</label>
+              <input type="text" name="title" required
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Brief description of the issue">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select name="category" required
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+                <option value="">Select category</option>
+                <option value="Water Leakage">Water Leakage</option>
+                <option value="Garbage Dump">Garbage Dump</option>
+                <option value="Pothole">Pothole</option>
+                <option value="Broken Streetlight">Broken Streetlight</option>
+                <option value="Traffic Signal">Traffic Signal</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea name="description" required rows="4"
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Provide detailed information about the issue"></textarea>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <label class="block text-sm font-medium text-gray-700">Location</label>
+                <button type="button" onclick="getCurrentLocation()"
+                  class="px-3 py-1 text-xs rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-medium">
+                  📍 Use Current Location
+                </button>
+              </div>
+
+              <!-- Map Container -->
+              <div id="map" class="mb-3 border border-gray-300"></div>
+
+              <!-- Address Display -->
+              <input type="text" id="location-address" name="address" required readonly
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-700"
+                placeholder="Click 'Use Current Location' or click on map">
+
+              <!-- Hidden fields for coordinates -->
+              <input type="hidden" id="location-lat" name="lat">
+              <input type="hidden" id="location-lng" name="lng">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Upload Photo (Optional)</label>
+              <div class="relative">
+                <input type="file" id="file-upload" accept="image/*"
+                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                <div id="upload-loading" class="hidden absolute right-3 top-3">
+                  <svg class="animate-spin h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Image Preview -->
+              <div id="image-preview-container"
+                class="hidden mt-3 relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden group">
+                <img id="image-preview" src="" alt="Preview" class="w-full h-full object-cover">
+                <button type="button" onclick="removeImage()"
+                  class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Hidden input for image URL -->
+              <input type="hidden" id="image-url" name="imageUrl">
+            </div>
+
+            <button type="submit"
+              class="w-full px-6 py-3 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
+              Submit Report
+            </button>
+          </form>
+        </div>
+
+        <!-- My Issues Tab -->
+        <div id="content-my-issues" class="hidden">
+          <h2 class="text-xl font-bold text-gray-900 mb-6">My Reported Issues</h2>
+          <div id="issues-list" class="space-y-4">
+            <p class="text-gray-500 text-center py-8">Loading your reports...</p>
+          </div>
+        </div>
+
+        <!-- My Impact Tab -->
+        <div id="content-impact" class="hidden">
+          <h2 class="text-xl font-bold text-gray-900 mb-6">My Sustainability Impact</h2>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-blue-50 rounded-lg p-6 border border-blue-100">
+              <p class="text-sm text-blue-700 font-medium mb-2">Water Saved</p>
+              <p class="text-4xl font-bold text-blue-600" id="impact-water">0</p>
+              <p class="text-sm text-blue-600 mt-1">liters</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-6 border border-green-100">
+              <p class="text-sm text-green-700 font-medium mb-2">CO₂ Reduced</p>
+              <p class="text-4xl font-bold text-green-600" id="impact-co2">0</p>
+              <p class="text-sm text-green-600 mt-1">kg</p>
+            </div>
+            <div class="bg-amber-50 rounded-lg p-6 border border-amber-100">
+              <p class="text-sm text-amber-700 font-medium mb-2">Waste Removed</p>
+              <p class="text-4xl font-bold text-amber-600" id="impact-waste">0</p>
+              <p class="text-sm text-amber-600 mt-1">kg</p>
+            </div>
+            <div class="bg-violet-50 rounded-lg p-6 border border-violet-100">
+              <p class="text-sm text-violet-700 font-medium mb-2">Total Points</p>
+              <p class="text-4xl font-bold text-violet-600" id="impact-points">0</p>
+              <p class="text-sm text-violet-600 mt-1">earned</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard Tab -->
+        <div id="content-leaderboard" class="hidden">
+          <h2 class="text-xl font-bold text-gray-900 mb-6">🏆 Top Contributors</h2>
+
+          <!-- Leaderboard Stats -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-6 border border-yellow-200">
+              <p class="text-sm text-yellow-700 font-medium mb-2">🥇 Top Contributor</p>
+              <p class="text-2xl font-bold text-yellow-800" id="top-contributor">Loading...</p>
+              <p class="text-sm text-yellow-600 mt-1" id="top-points">0 points</p>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-6 border border-emerald-200">
+              <p class="text-sm text-emerald-700 font-medium mb-2">👥 Total Contributors</p>
+              <p class="text-2xl font-bold text-emerald-800" id="total-contributors">0</p>
+              <p class="text-sm text-emerald-600 mt-1">active citizens</p>
+            </div>
+            <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-6 border border-violet-200">
+              <p class="text-sm text-violet-700 font-medium mb-2">📊 Your Rank</p>
+              <p class="text-2xl font-bold text-violet-800" id="my-rank">#-</p>
+              <p class="text-sm text-violet-600 mt-1" id="my-leaderboard-points">0 points</p>
+            </div>
+          </div>
+
+          <!-- Leaderboard Table -->
+          <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Rank</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Contributor</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Issues Reported</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Points</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Badge</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-table" class="divide-y divide-gray-200">
+                  <tr>
+                    <td colspan="5" class="px-6 py-8 text-center text-gray-500">Loading leaderboard...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 max-w-sm px-4 py-3 rounded-lg bg-white shadow-lg border text-sm hidden">
+  </div>
+
+  <script>
+    const token = localStorage.getItem('up_token');
+    const user = JSON.parse(localStorage.getItem('up_user') || '{}');
+    let map = null;
+    let marker = null;
+
+    if (!token || user.role !== 'citizen') {
+      window.location.href = '/login';
+    }
+
+    document.getElementById('user-name').textContent = user.name || 'User';
+    document.getElementById('welcome-name').textContent = user.name || 'User';
+
+    // Initialize Map
+    function initMap() {
+      // Default location (India center)
+      const defaultLat = 20.5937;
+      const defaultLng = 78.9629;
+
+      map = L.map('map').setView([defaultLat, defaultLng], 5);
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      // Add click event to map
+      map.on('click', function (e) {
+        setLocation(e.latlng.lat, e.latlng.lng);
+      });
+    }
+
+    // Get Current Location
+    function getCurrentLocation() {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser', true);
+        return;
+      }
+
+      showToast('Getting your location...', false);
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setLocation(lat, lng);
+          map.setView([lat, lng], 15);
+          showToast('Location detected successfully!', false);
+        },
+        (error) => {
+          let errorMsg = 'Unable to get location';
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMsg = 'Location permission denied. Please enable location access.';
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            errorMsg = 'Location information unavailable';
+          } else if (error.code === error.TIMEOUT) {
+            errorMsg = 'Location request timed out';
+          }
+          showToast(errorMsg, true);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    // Set Location on Map
+    function setLocation(lat, lng) {
+      // Remove old marker if exists
+      if (marker) {
+        map.removeLayer(marker);
+      }
+
+      // Add new marker
+      marker = L.marker([lat, lng]).addTo(map);
+
+      // Set coordinates in hidden fields
+      document.getElementById('location-lat').value = lat;
+      document.getElementById('location-lng').value = lng;
+
+      // Reverse geocode to get address
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(res => res.json())
+        .then(data => {
+          const address = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          document.getElementById('location-address').value = address;
+        })
+        .catch(() => {
+          document.getElementById('location-address').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        });
+    }
+
+    function showToast(message, isError) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.classList.remove('hidden');
+      el.classList.toggle('border-red-500', !!isError);
+      el.classList.toggle('text-red-700', !!isError);
+      el.classList.toggle('border-emerald-500', !isError);
+      el.classList.toggle('text-emerald-700', !isError);
+      setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    function logout() {
+      localStorage.removeItem('up_token');
+      localStorage.removeItem('up_user');
+      window.location.href = '/login';
+    }
+
+    function switchTab(tab) {
+      // Hide all tabs
+      document.getElementById('content-report').classList.add('hidden');
+      document.getElementById('content-my-issues').classList.add('hidden');
+      document.getElementById('content-impact').classList.add('hidden');
+      document.getElementById('content-leaderboard').classList.add('hidden');
+
+      // Reset tab styles
+      document.getElementById('tab-report').className = 'py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm';
+      document.getElementById('tab-my-issues').className = 'py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm';
+      document.getElementById('tab-impact').className = 'py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm';
+      document.getElementById('tab-leaderboard').className = 'py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm';
+
+      // Show selected tab
+      document.getElementById('content-' + tab).classList.remove('hidden');
+      document.getElementById('tab-' + tab).className = 'py-4 border-b-2 border-emerald-600 text-emerald-600 font-medium text-sm';
+
+      // Load data for specific tabs
+      if (tab === 'my-issues') loadMyIssues();
+      if (tab === 'impact') loadImpact();
+      if (tab === 'leaderboard') loadLeaderboard();
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/issues/my', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const issues = await res.json();
+
+        document.getElementById('stat-reports').textContent = issues.length;
+        document.getElementById('stat-resolved').textContent = issues.filter(i => i.status === 'CLOSED').length;
+        document.getElementById('stat-points').textContent = user.points || 0;
+      } catch (e) {
+        console.error('Failed to load stats:', e);
+      }
+    }
+
+    async function loadMyIssues() {
+      try {
+        const res = await fetch('/api/issues/my', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const issues = await res.json();
+
+        const list = document.getElementById('issues-list');
+        if (issues.length === 0) {
+          list.innerHTML = '<p class="text-gray-500 text-center py-8">No reports yet. Start by reporting an issue!</p>';
+          return;
+        }
+
+        list.innerHTML = issues.map(issue => `
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-semibold text-gray-900">${issue.title}</h3>
+                <span class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(issue.status)}">${issue.status}</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-2">${issue.category}</p>
+              <p class="text-xs text-gray-500">${new Date(issue.createdAt).toLocaleDateString()}</p>
+            </div>
+          `).join('');
+      } catch (e) {
+        console.error('Failed to load issues:', e);
+      }
+    }
+
+    async function loadImpact() {
+      try {
+        const res = await fetch('/api/impact/user', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        document.getElementById('impact-water').textContent = Math.round(data.totals?.waterSaved || 0);
+        document.getElementById('impact-co2').textContent = Math.round(data.totals?.co2Reduced || 0);
+        document.getElementById('impact-waste').textContent = Math.round(data.totals?.wasteRemoved || 0);
+        document.getElementById('impact-points').textContent = data.points || 0;
+      } catch (e) {
+        console.error('Failed to load impact:', e);
+      }
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        'REPORTED': 'bg-blue-100 text-blue-700',
+        'VERIFIED': 'bg-purple-100 text-purple-700',
+        'ASSIGNED': 'bg-amber-100 text-amber-700',
+        'IN_PROGRESS': 'bg-orange-100 text-orange-700',
+        'RESOLVED': 'bg-green-100 text-green-700',
+        'CLOSED': 'bg-gray-100 text-gray-700'
+      };
+      return colors[status] || 'bg-gray-100 text-gray-700';
+    }
+
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch('/api/impact/leaderboard', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const leaders = await res.json();
+
+        // Update stats
+        if (leaders.length > 0) {
+          document.getElementById('top-contributor').textContent = leaders[0].name;
+          document.getElementById('top-points').textContent = `${leaders[0].points} points`;
+        }
+        document.getElementById('total-contributors').textContent = leaders.length;
+
+        // Find user's rank
+        const myRank = leaders.findIndex(l => l.email === user.email) + 1;
+        if (myRank > 0) {
+          document.getElementById('my-rank').textContent = `#${myRank}`;
+          document.getElementById('my-leaderboard-points').textContent = `${leaders[myRank - 1].points} points`;
+        }
+
+        // Render table
+        const tbody = document.getElementById('leaderboard-table');
+        if (leaders.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No contributors yet</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = leaders.map((leader, index) => {
+          const isCurrentUser = leader.email === user.email;
+          const badge = getBadge(leader.points);
+          const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+
+          return `
+            <tr class="${isCurrentUser ? 'bg-emerald-50' : 'hover:bg-gray-50'}">
+              <td class="px-6 py-4 text-sm font-bold ${index < 3 ? 'text-yellow-600' : 'text-gray-900'}">${rankIcon}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 font-medium">
+                ${leader.name} ${isCurrentUser ? '<span class="text-emerald-600">(You)</span>' : ''}
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600">${leader.issuesReported || 0}</td>
+              <td class="px-6 py-4 text-sm font-semibold text-emerald-600">${leader.points}</td>
+              <td class="px-6 py-4 text-sm">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Failed to load leaderboard:', e);
+        document.getElementById('leaderboard-table').innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">Failed to load leaderboard</td></tr>';
+      }
+    }
+
+    function getBadge(points) {
+      if (points >= 1000) return '<span class="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">🏆 Legend</span>';
+      if (points >= 500) return '<span class="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">⭐ Champion</span>';
+      if (points >= 250) return '<span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">💎 Expert</span>';
+      if (points >= 100) return '<span class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">🌟 Pro</span>';
+      if (points >= 50) return '<span class="px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-700">✨ Active</span>';
+      return '<span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">🌱 Beginner</span>';
+    }
+
+    document.getElementById('report-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+
+      // Get coordinates from hidden fields
+      const lat = parseFloat(document.getElementById('location-lat').value);
+      const lng = parseFloat(document.getElementById('location-lng').value);
+
+      if (!lat || !lng) {
+        showToast('Please select a location on the map', true);
+        return;
+      }
+
+      const payload = {
+        title: form.title.value,
+        category: form.category.value,
+        description: form.description.value,
+        imageUrl: document.getElementById('image-url').value || null,
+        location: {
+          lat: lat,
+          lng: lng,
+          address: form.address.value
+        }
+      };
+
+      try {
+        const res = await fetch('/api/issues/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          showToast(data.error || 'Failed to submit report', true);
+          return;
+        }
+
+        showToast('Issue reported successfully!', false);
+        form.reset();
+
+        // Clear map marker
+        if (marker) {
+          map.removeLayer(marker);
+          marker = null;
+        }
+        document.getElementById('location-address').value = '';
+        document.getElementById('location-lat').value = '';
+        document.getElementById('location-lng').value = '';
+        removeImage();
+
+        loadStats();
+      } catch (err) {
+        showToast('Network error. Please try again.', true);
+      }
+    });
+
+    // Image Upload Handling
+    const fileInput = document.getElementById('file-upload');
+    if (fileInput) {
+      fileInput.addEventListener('change', handleFileUpload);
+    }
+
+    async function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Show loading
+      const loadingEl = document.getElementById('upload-loading');
+      if (loadingEl) loadingEl.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Upload failed');
+        }
+
+        // Show preview
+        const previewEl = document.getElementById('image-preview');
+        const containerEl = document.getElementById('image-preview-container');
+        const urlInput = document.getElementById('image-url');
+
+        if (previewEl) previewEl.src = data.url;
+        if (containerEl) containerEl.classList.remove('hidden');
+        if (urlInput) urlInput.value = data.url;
+
+        showToast('Image uploaded successfully!', false);
+      } catch (err) {
+        showToast(err.message, true);
+        e.target.value = ''; // Reset input
+      } finally {
+        if (loadingEl) loadingEl.classList.add('hidden');
+      }
+    }
+
+    function removeImage() {
+      const fileInput = document.getElementById('file-upload');
+      const previewEl = document.getElementById('image-preview');
+      const containerEl = document.getElementById('image-preview-container');
+      const urlInput = document.getElementById('image-url');
+
+      if (fileInput) fileInput.value = '';
+      if (previewEl) previewEl.src = '';
+      if (containerEl) containerEl.classList.add('hidden');
+      if (urlInput) urlInput.value = '';
+    }
+
+
+    // Notifications Logic
+    function toggleNotifications() {
+      const dropdown = document.getElementById('notif-dropdown');
+      dropdown.classList.toggle('hidden');
+      if (!dropdown.classList.contains('hidden')) {
+        loadNotifications();
+      }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const btn = document.getElementById('notif-btn');
+      const dropdown = document.getElementById('notif-dropdown');
+      if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    async function loadNotifications() {
+      try {
+        const res = await fetch('/api/notifications', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        // Update Badge
+        const badge = document.getElementById('notif-badge');
+        if (data.unreadCount > 0) {
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        // Render List if dropdown represents list
+        const list = document.getElementById('notif-list');
+        if (data.notifications.length === 0) {
+          list.innerHTML = '<div class="p-8 text-center"><p class="text-sm text-gray-400">No notifications yet</p></div>';
+          return;
+        }
+
+        list.innerHTML = data.notifications.map(n => `
+          <div class="p-3 hover:bg-gray-50 transition-colors ${n.read ? 'opacity-60' : 'bg-blue-50/30'} flex gap-3 cursor-pointer" onclick="markRead('${n.id}')">
+            <div class="flex-shrink-0 mt-1">
+              <span class="w-2 h-2 rounded-full ${n.read ? 'bg-transparent' : 'bg-blue-500'} block"></span>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-900">${n.title}</p>
+              <p class="text-xs text-gray-600 mt-0.5">${n.message}</p>
+              <p class="text-[10px] text-gray-400 mt-1">${new Date(n.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error('Failed notifications', err);
+      }
+    }
+
+    async function markRead(id) {
+      try {
+        await fetch(`/api/notifications/${id}/read`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        loadNotifications(); // Refresh
+      } catch (e) { }
+    }
+
+    async function markAllRead() {
+      try {
+        await fetch(`/api/notifications/read-all`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        loadNotifications();
+      } catch (e) { }
+    }
+
+    // Load initial data and initialize map
+    loadStats();
+    loadNotifications();
+    setInterval(loadNotifications, 30000); // Poll every 30s
+    initMap();
+  </script>
+</body>
+
+</html>

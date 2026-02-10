@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_APP=app:create_app()
+      - FLASK_DEBUG=1
+      - MONGO_URI=mongodb://db:27017/urban_pulse
+      - SECRET_KEY=dev-secret
+      - JWT_SECRET=jwt-secret
+    depends_on:
+      - db
+    command: ["python", "run.py"] # For development with hot reload
+
+  db:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

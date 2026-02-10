@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Urban Pulse — Issue Detail</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-50">
+    <div class="min-h-screen flex flex-col">
+      <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+        <div class="max-w-4xl mx-auto flex items-center justify-between py-3 px-4 text-sm">
+          <a href="/" class="flex items-center gap-2">
+            <div class="h-7 w-7 rounded bg-emerald-500 flex items-center justify-center font-bold text-xs">UP</div>
+            <span class="font-semibold tracking-tight">Issue Timeline</span>
+          </a>
+          <a href="javascript:history.back()" class="text-xs text-slate-300 hover:text-emerald-400">Back</a>
+        </div>
+      </header>
+
+      <main class="flex-1 max-w-4xl mx-auto px-4 py-5 text-sm space-y-4">
+        <div id="issue-meta" class="text-xs text-slate-300">Loading…</div>
+
+        <section class="grid md:grid-cols-2 gap-4 text-xs" id="images-section" style="display: none">
+          <div>
+            <h2 class="font-medium mb-2">Before / after comparison</h2>
+            <div class="relative w-full overflow-hidden rounded border border-slate-800" id="slider-container">
+              <img id="img-before" class="w-full object-cover max-h-72" />
+              <div
+                id="after-wrapper"
+                class="absolute inset-0 overflow-hidden"
+                style="width: 50%; border-right: 2px solid rgba(16,185,129,0.8)"
+              >
+                <img id="img-after" class="w-full object-cover max-h-72" />
+              </div>
+              <input
+                id="slider"
+                type="range"
+                min="0"
+                max="100"
+                value="50"
+                class="absolute bottom-2 left-1/2 -translate-x-1/2 w-1/2"
+              />
+            </div>
+          </div>
+          <div>
+            <h2 class="font-medium mb-2">Lifecycle timeline</h2>
+            <ol id="timeline" class="space-y-1 text-slate-300 text-[11px]"></ol>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const issueId = '{{ issue_id }}';
+
+      async function loadIssue() {
+        // use any token if present, but allow unauth by falling back
+        const token = localStorage.getItem('up_token');
+        const headers = token ? { Authorization: 'Bearer ' + token } : {};
+        const res = await fetch('/api/issues/' + issueId, { headers });
+        const data = await res.json();
+        const metaEl = document.getElementById('issue-meta');
+        if (!res.ok) {
+          metaEl.textContent = data.error || 'Failed to load issue';
+          return;
+        }
+        const issue = data.issue;
+        const timeline = data.timeline || [];
+        metaEl.innerHTML =
+          '<h1 class="text-lg font-semibold mb-1">' +
+          issue.title +
+          '</h1>' +
+          '<p class="text-[12px] text-slate-400 mb-1">' +
+          issue.description +
+          '</p>' +
+          '<p class="text-[11px] text-slate-500 mb-1">Category: ' +
+          issue.category +
+          ' · Status: ' +
+          issue.status +
+          '</p>' +
+          '<p class="text-[11px] text-slate-500">SDG tags: ' +
+          (issue.sdgTags || []).join(', ') +
+          '</p>';
+
+        const tlEl = document.getElementById('timeline');
+        tlEl.innerHTML =
+          timeline
+            .map(
+              (t) =>
+                '<li>• <span class="text-slate-100">' +
+                t.action +
+                '</span> at ' +
+                dayjs(t.timestamp).format('DD MMM, HH:mm') +
+                '</li>'
+            )
+            .join('') || '<li>No audit entries.</li>';
+
+        const beforeUrl = issue.imageUrl;
+        const afterUrl = issue.completionImageUrl;
+        if (beforeUrl || afterUrl) {
+          document.getElementById('images-section').style.display = 'grid';
+          if (beforeUrl) document.getElementById('img-before').src = beforeUrl;
+          if (afterUrl) document.getElementById('img-after').src = afterUrl;
+        }
+      }
+
+      const slider = document.getElementById('slider');
+      const afterWrapper = document.getElementById('after-wrapper');
+      slider.addEventListener('input', (e) => {
+        const v = e.target.value;
+        afterWrapper.style.width = v + '%';
+      });
+
+      loadIssue();
+    </script>
+  </body>
+  </html>
+
+

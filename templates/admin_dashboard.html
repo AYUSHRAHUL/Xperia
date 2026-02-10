@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Urban Pulse — Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between py-4 px-6">
+      <div class="flex items-center gap-3">
+        <div
+          class="h-10 w-10 rounded-lg bg-gradient-to-br from-violet-600 to-violet-700 flex items-center justify-center font-bold text-white">
+          UP
+        </div>
+        <div>
+          <div class="font-bold text-lg text-gray-900">Admin Portal</div>
+          <p class="text-xs text-gray-600">Platform Management & Analytics</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <!-- Notifications -->
+        <div class="relative">
+          <button id="notif-btn" onclick="toggleNotifications()"
+            class="p-2 text-gray-500 hover:text-violet-600 relative rounded-full hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span id="notif-badge"
+              class="hidden absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full border border-white animate-pulse"></span>
+          </button>
+
+          <!-- Dropdown -->
+          <div id="notif-dropdown"
+            class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50">
+            <div class="p-3 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+              <h3 class="font-semibold text-sm text-gray-800">Notifications</h3>
+              <button onclick="markAllRead()" class="text-xs text-violet-600 hover:text-violet-700 font-medium">Mark all
+                read</button>
+            </div>
+            <div id="notif-list" class="max-h-80 overflow-y-auto divide-y divide-gray-50">
+              <div class="p-8 text-center">
+                <p class="text-sm text-gray-400">No notifications yet</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <span id="user-name" class="text-sm text-gray-700 font-medium"></span>
+        <button onclick="logout()"
+          class="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Welcome Section -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+      <p class="text-gray-600">Monitor platform performance and manage operations.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">Total Issues</p>
+        <p class="text-3xl font-bold text-gray-900" id="stat-total">0</p>
+      </div>
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">Pending</p>
+        <p class="text-3xl font-bold text-amber-600" id="stat-pending">0</p>
+      </div>
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">Resolved</p>
+        <p class="text-3xl font-bold text-emerald-600" id="stat-resolved">0</p>
+      </div>
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-600 mb-1">Total Users</p>
+        <p class="text-3xl font-bold text-violet-600" id="stat-users">0</p>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+      <!-- Issues Chart -->
+      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">Issues by Status</h2>
+        <div style="position: relative; height: 300px; max-height: 300px; overflow: hidden;">
+          <canvas id="statusChart" width="400" height="300"></canvas>
+        </div>
+      </div>
+
+      <!-- Category Chart -->
+      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">Issues by Category</h2>
+        <div style="position: relative; height: 300px; max-height: 300px; overflow: hidden;">
+          <canvas id="categoryChart" width="400" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- All Issues Table -->
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+      <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-900">All Issues</h2>
+        <select id="status-filter" onchange="filterIssues()"
+          class="px-3 py-2 rounded-lg border border-gray-300 text-sm">
+          <option value="all">All Status</option>
+          <option value="REPORTED">Reported</option>
+          <option value="VERIFIED">Verified</option>
+          <option value="ASSIGNED">Assigned</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="RESOLVED">Resolved</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Title</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Reported</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="issues-table" class="divide-y divide-gray-200">
+            <tr>
+              <td colspan="5" class="px-6 py-8 text-center text-gray-500">Loading issues...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Detail Modal -->
+  <div id="issue-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <h3 class="text-xl font-bold text-gray-900">Issue Details</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div id="modal-content" class="p-6">
+        <!-- Content loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 max-w-sm px-4 py-3 rounded-lg bg-white shadow-lg border text-sm hidden">
+  </div>
+
+  <script>
+    const token = localStorage.getItem('up_token');
+    const user = JSON.parse(localStorage.getItem('up_user') || '{}');
+    let allIssues = [];
+    let statusChartInstance = null;
+    let categoryChartInstance = null;
+
+    if (!token || user.role !== 'admin') {
+      window.location.href = '/login';
+    }
+
+    document.getElementById('user-name').textContent = user.name || 'Admin';
+
+    function showToast(message, isError) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.classList.remove('hidden');
+      el.classList.toggle('border-red-500', !!isError);
+      el.classList.toggle('text-red-700', !!isError);
+      el.classList.toggle('border-violet-500', !isError);
+      el.classList.toggle('text-violet-700', !isError);
+      setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    function logout() {
+      localStorage.removeItem('up_token');
+      localStorage.removeItem('up_user');
+      window.location.href = '/login';
+    }
+
+    function filterIssues() {
+      const filter = document.getElementById('status-filter').value;
+      const filtered = filter === 'all' ? allIssues : allIssues.filter(i => i.status === filter);
+      renderIssuesTable(filtered);
+    }
+
+    function renderIssuesTable(issues) {
+      const tbody = document.getElementById('issues-table');
+
+      if (issues.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No issues found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = issues.map(issue => `
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 text-sm text-gray-900">${issue.title}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">${issue.category}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(issue.status)}">${issue.status}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-600">${new Date(issue.createdAt).toLocaleDateString()}</td>
+            <td class="px-6 py-4">
+              <button onclick="openIssue('${issue.id}')" class="text-violet-600 hover:text-violet-700 text-sm font-medium">
+                View Details
+              </button>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    function openIssue(issueId) {
+      const issue = allIssues.find(i => i.id === issueId);
+      if (!issue) return;
+
+      const content = document.getElementById('modal-content');
+      content.innerHTML = `
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium text-gray-700">Title</label>
+              <p class="text-gray-900 mt-1">${issue.title}</p>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Category</label>
+              <p class="text-gray-900 mt-1">${issue.category}</p>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Description</label>
+              <p class="text-gray-900 mt-1">${issue.description}</p>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Location</label>
+              <p class="text-gray-900 mt-1">${issue.location?.address || 'Not specified'}</p>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Current Status</label>
+              <p class="mt-1"><span class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(issue.status)}">${issue.status}</span></p>
+            </div>
+            
+            ${issue.status === 'REPORTED' ? `
+              <button onclick="verifyIssue('${issue.id}')" class="w-full px-4 py-3 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700">
+                Verify Issue
+              </button>
+            ` : ''}
+            
+            ${issue.status === 'RESOLVED' ? `
+              <button onclick="closeIssue('${issue.id}')" class="w-full px-4 py-3 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
+                Close Issue
+              </button>
+            ` : ''}
+          </div>
+        `;
+
+      document.getElementById('issue-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('issue-modal').classList.add('hidden');
+    }
+
+    async function verifyIssue(issueId) {
+      await updateIssueStatus(issueId, 'VERIFIED');
+    }
+
+    async function closeIssue(issueId) {
+      await updateIssueStatus(issueId, 'CLOSED');
+    }
+
+    async function updateIssueStatus(issueId, status) {
+      try {
+        const res = await fetch('/api/issues/update-status', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ issueId, status })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          showToast(data.error || 'Failed to update status', true);
+          return;
+        }
+
+        showToast('Status updated successfully!', false);
+        closeModal();
+        loadData();
+      } catch (err) {
+        showToast('Network error. Please try again.', true);
+      }
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        'REPORTED': 'bg-blue-100 text-blue-700',
+        'VERIFIED': 'bg-purple-100 text-purple-700',
+        'ASSIGNED': 'bg-amber-100 text-amber-700',
+        'IN_PROGRESS': 'bg-orange-100 text-orange-700',
+        'RESOLVED': 'bg-green-100 text-green-700',
+        'CLOSED': 'bg-gray-100 text-gray-700'
+      };
+      return colors[status] || 'bg-gray-100 text-gray-700';
+    }
+
+    async function loadData() {
+      try {
+        // Load all issues
+        const issuesRes = await fetch('/api/admin/all-issues', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const issues = await issuesRes.json();
+        allIssues = issues.map(i => ({ ...i, id: i._id || i.id }));
+
+        // Update stats
+        document.getElementById('stat-total').textContent = issues.length;
+        document.getElementById('stat-pending').textContent = issues.filter(i => !['RESOLVED', 'CLOSED'].includes(i.status)).length;
+        document.getElementById('stat-resolved').textContent = issues.filter(i => i.status === 'RESOLVED' || i.status === 'CLOSED').length;
+
+        // Load users count
+        try {
+          const usersRes = await fetch('/api/admin/users', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const users = await usersRes.json();
+          document.getElementById('stat-users').textContent = users.length;
+        } catch (e) {
+          document.getElementById('stat-users').textContent = '-';
+        }
+
+        // Render table
+        renderIssuesTable(allIssues);
+
+        // Render charts
+        renderCharts(issues);
+      } catch (e) {
+        console.error('Failed to load data:', e);
+      }
+    }
+
+    function renderCharts(issues) {
+      // Destroy old charts if they exist
+      if (statusChartInstance) {
+        statusChartInstance.destroy();
+      }
+      if (categoryChartInstance) {
+        categoryChartInstance.destroy();
+      }
+
+      // Status Chart
+      const statusCounts = {
+        'REPORTED': 0,
+        'VERIFIED': 0,
+        'ASSIGNED': 0,
+        'IN_PROGRESS': 0,
+        'RESOLVED': 0,
+        'CLOSED': 0
+      };
+
+      issues.forEach(i => {
+        if (statusCounts.hasOwnProperty(i.status)) {
+          statusCounts[i.status]++;
+        }
+      });
+
+      statusChartInstance = new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(statusCounts),
+          datasets: [{
+            data: Object.values(statusCounts),
+            backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#f97316', '#10b981', '#6b7280']
+          }]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 10,
+                font: {
+                  size: 11
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Category Chart
+      const categoryCounts = {};
+      issues.forEach(i => {
+        categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1;
+      });
+
+      categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(categoryCounts),
+          datasets: [{
+            label: 'Issues',
+            data: Object.values(categoryCounts),
+            backgroundColor: '#8b5cf6'
+          }]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                font: {
+                  size: 11
+                }
+              }
+            },
+            x: {
+              ticks: {
+                font: {
+                  size: 11
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Notifications Logic
+    function toggleNotifications() {
+      const dropdown = document.getElementById('notif-dropdown');
+      dropdown.classList.toggle('hidden');
+      if (!dropdown.classList.contains('hidden')) {
+        loadNotifications();
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const btn = document.getElementById('notif-btn');
+      const dropdown = document.getElementById('notif-dropdown');
+      if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    async function loadNotifications() {
+      try {
+        const res = await fetch('/api/notifications', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        const badge = document.getElementById('notif-badge');
+        if (data.unreadCount > 0) {
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        const list = document.getElementById('notif-list');
+        if (data.notifications.length === 0) {
+          list.innerHTML = '<div class="p-8 text-center"><p class="text-sm text-gray-400">No notifications yet</p></div>';
+          return;
+        }
+
+        list.innerHTML = data.notifications.map(n => `
+          <div class="p-3 hover:bg-gray-50 transition-colors ${n.read ? 'opacity-60' : 'bg-blue-50/30'} flex gap-3 cursor-pointer" onclick="markRead('${n.id}')">
+            <div class="flex-shrink-0 mt-1">
+              <span class="w-2 h-2 rounded-full ${n.read ? 'bg-transparent' : 'bg-blue-500'} block"></span>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-900">${n.title}</p>
+              <p class="text-xs text-gray-600 mt-0.5">${n.message}</p>
+              <p class="text-[10px] text-gray-400 mt-1">${new Date(n.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error('Failed notifications', err);
+      }
+    }
+
+    async function markRead(id) {
+      try {
+        await fetch(`/api/notifications/${id}/read`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        loadNotifications();
+      } catch (e) { }
+    }
+
+    async function markAllRead() {
+      try {
+        await fetch(`/api/notifications/read-all`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        loadNotifications();
+      } catch (e) { }
+    }
+
+    // Load initial data
+    loadData();
+    loadNotifications();
+    setInterval(loadNotifications, 30000);
+  </script>
+</body>
+
+</html>

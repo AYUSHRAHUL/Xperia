@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Urban Pulse — Smart City Sustainability Ledger</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Transform local infrastructure problems into measurable sustainability progress" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #059669 0%, #2563eb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <div class="max-w-7xl mx-auto flex items-center justify-between py-4 px-6">
+        <div class="flex items-center gap-3">
+          <div
+            class="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-700 flex items-center justify-center font-bold text-white">
+            UP
+          </div>
+          <div>
+            <div class="font-bold text-lg text-gray-900">Urban Pulse</div>
+            <p class="text-xs text-gray-600">Smart City Sustainability</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-6">
+          <a href="/dashboard" class="text-sm text-gray-700 hover:text-emerald-600 transition-colors">Dashboard</a>
+          <a href="/login"
+            class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-all">
+            Sign In
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <!-- Hero Section -->
+      <section class="py-16 px-6">
+        <div class="max-w-7xl mx-auto">
+          <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-6">
+              <h1 class="text-5xl font-bold tracking-tight leading-tight text-gray-900">
+                From complaints to <span class="gradient-text">measurable SDG impact</span>
+              </h1>
+
+              <p class="text-lg text-gray-600 leading-relaxed">
+                Urban Pulse transforms local issue reporting into a live sustainability ledger,
+                mapping every fix to UN Sustainable Development Goals.
+              </p>
+
+              <div class="flex gap-4 pt-4">
+                <a href="/register"
+                  class="px-6 py-3 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition-all">
+                  Get Started
+                </a>
+                <a href="/dashboard"
+                  class="px-6 py-3 rounded-lg border-2 border-gray-300 text-gray-700 font-semibold hover:border-emerald-600 hover:text-emerald-600 transition-all">
+                  View Dashboard
+                </a>
+              </div>
+            </div>
+
+            <!-- Live Stats -->
+            <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900">Live City Impact</h2>
+                <span class="text-xs text-emerald-600 font-medium">● Real-time</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                  <p class="text-xs text-blue-700 font-medium mb-2">Water Saved</p>
+                  <p class="text-3xl font-bold text-blue-600" id="waterSaved">–</p>
+                  <p class="text-xs text-blue-600 mt-1">liters</p>
+                </div>
+
+                <div class="bg-green-50 rounded-lg p-4 border border-green-100">
+                  <p class="text-xs text-green-700 font-medium mb-2">CO₂ Reduced</p>
+                  <p class="text-3xl font-bold text-green-600" id="co2Reduced">–</p>
+                  <p class="text-xs text-green-600 mt-1">kg</p>
+                </div>
+
+                <div class="bg-amber-50 rounded-lg p-4 border border-amber-100">
+                  <p class="text-xs text-amber-700 font-medium mb-2">Waste Removed</p>
+                  <p class="text-3xl font-bold text-amber-600" id="wasteRemoved">–</p>
+                  <p class="text-xs text-amber-600 mt-1">kg</p>
+                </div>
+
+                <div class="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+                  <p class="text-xs text-emerald-700 font-medium mb-2">Issues Resolved</p>
+                  <p class="text-3xl font-bold text-emerald-600" id="issuesResolved">–</p>
+                  <p class="text-xs text-emerald-600 mt-1">completed</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section class="py-16 px-6 bg-white border-t border-gray-200">
+        <div class="max-w-7xl mx-auto">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold mb-3 text-gray-900">Complete Civic Engagement Platform</h2>
+            <p class="text-gray-600 text-lg">Empowering citizens, workers, and administrators</p>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-8">
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <div class="h-12 w-12 rounded-lg bg-emerald-100 flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-3 text-gray-900">Citizen Portal</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Report issues with GPS and images, track status, and see your personal SDG contribution.
+              </p>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <div class="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-3 text-gray-900">Transparency Dashboard</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Live public ledger of sustainability wins with full audit trails and metrics.
+              </p>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <div class="h-12 w-12 rounded-lg bg-violet-100 flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-3 text-gray-900">Admin Workflow</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Verify issues, assign workers, and audit performance with analytics.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200">
+      <div class="max-w-7xl mx-auto py-8 px-6">
+        <div class="grid md:grid-cols-3 gap-8 mb-6">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                class="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-700 flex items-center justify-center font-bold text-white">
+                UP
+              </div>
+              <div class="font-bold text-lg text-gray-900">Urban Pulse</div>
+            </div>
+            <p class="text-sm text-gray-600">Impact-integrated civic reporting platform</p>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-3 text-gray-900">Quick Links</h3>
+            <ul class="space-y-2 text-sm text-gray-600">
+              <li><a href="/dashboard" class="hover:text-emerald-600">Dashboard</a></li>
+              <li><a href="/login" class="hover:text-emerald-600">Sign In</a></li>
+              <li><a href="/register" class="hover:text-emerald-600">Register</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-3 text-gray-900">Demo Accounts</h3>
+            <ul class="space-y-1 text-xs text-gray-600">
+              <li>Admin: admin@urbanpulse.local</li>
+              <li>Worker: worker@urbanpulse.local</li>
+              <li>Citizen: citizen@urbanpulse.local</li>
+            </ul>
+          </div>
+        </div>
+        <div class="border-t border-gray-200 pt-6 text-center text-sm text-gray-500">
+          © 2026 Urban Pulse. Built for sustainable cities.
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    async function loadGlobalImpact() {
+      try {
+        const res = await fetch('/api/impact/global');
+        const data = await res.json();
+        document.getElementById('waterSaved').textContent = Math.round(data.totalWaterSaved || 0).toLocaleString();
+        document.getElementById('co2Reduced').textContent = Math.round(data.totalCo2Reduced || 0).toLocaleString();
+        document.getElementById('wasteRemoved').textContent = Math.round(data.totalWasteRemoved || 0).toLocaleString();
+        document.getElementById('issuesResolved').textContent = (data.totalIssuesResolved || 0).toLocaleString();
+      } catch (e) {
+        console.error('Failed to load impact data:', e);
+        document.getElementById('waterSaved').textContent = '0';
+        document.getElementById('co2Reduced').textContent = '0';
+        document.getElementById('wasteRemoved').textContent = '0';
+        document.getElementById('issuesResolved').textContent = '0';
+      }
+    }
+    loadGlobalImpact();
+    setInterval(loadGlobalImpact, 30000);
+  </script>
+</body>
+
+</html>
