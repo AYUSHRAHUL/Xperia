@@ -29,6 +29,8 @@ def seed():
     db.audit_logs.delete_many({})
     db.global_aggregates.delete_many({})
     db.notifications.delete_many({})
+    db.comments.delete_many({})
+    db.votes.delete_many({})
 
     print("Creating users...")
     # Admin
@@ -175,6 +177,41 @@ def seed():
         "citizenParticipationCount": 1234,
         "updatedAt": datetime.utcnow()
     })
+
+    print("Adding sample comments and votes...")
+    # Add some comments to issues
+    sample_comments = [
+        "This is a serious issue that needs immediate attention!",
+        "I've seen this problem for weeks now.",
+        "Thank you for reporting this.",
+        "When will this be fixed?",
+        "Great work on resolving this quickly!"
+    ]
+    
+    for i, iid in enumerate(created_issues[:5]):
+        # Add 1-3 comments per issue
+        num_comments = random.randint(1, 3)
+        for _ in range(num_comments):
+            commenter = random.choice([citizen_id] + other_citizens)
+            commenter_user = db.users.find_one({"_id": commenter})
+            db.comments.insert_one({
+                "issueId": iid,
+                "userId": commenter,
+                "userName": commenter_user["name"],
+                "userRole": commenter_user["role"],
+                "comment": random.choice(sample_comments),
+                "createdAt": datetime.utcnow() - timedelta(hours=random.randint(1, 48))
+            })
+        
+        # Add votes (2-5 votes per issue)
+        num_votes = random.randint(2, 5)
+        voters = random.sample([citizen_id] + other_citizens, min(num_votes, len(other_citizens) + 1))
+        for voter in voters:
+            db.votes.insert_one({
+                "issueId": iid,
+                "userId": voter,
+                "createdAt": datetime.utcnow() - timedelta(hours=random.randint(1, 72))
+            })
 
     print("Seed complete! Users created:")
     print("Admin: admin@urbanpulse.local / admin123")

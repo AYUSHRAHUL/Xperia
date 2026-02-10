@@ -91,10 +91,12 @@
         <p class="text-sm text-gray-600 mb-1">Resolved</p>
         <p class="text-3xl font-bold text-emerald-600" id="stat-resolved">0</p>
       </div>
-      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+      <a href="/admin/users"
+        class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm hover:bg-violet-50 transition cursor-pointer">
         <p class="text-sm text-gray-600 mb-1">Total Users</p>
         <p class="text-3xl font-bold text-violet-600" id="stat-users">0</p>
-      </div>
+        <p class="text-xs text-violet-500 mt-2">Manage Users →</p>
+      </a>
     </div>
 
     <!-- Main Content -->
@@ -117,41 +119,54 @@
     </div>
 
 
-    <!-- All Issues Table -->
-    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-      <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-        <h2 class="text-xl font-bold text-gray-900">All Issues</h2>
-        <select id="status-filter" onchange="filterIssues()"
-          class="px-3 py-2 rounded-lg border border-gray-300 text-sm">
-          <option value="all">All Status</option>
-          <option value="REPORTED">Reported</option>
-          <option value="VERIFIED">Verified</option>
-          <option value="ASSIGNED">Assigned</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="RESOLVED">Resolved</option>
-          <option value="CLOSED">Closed</option>
-        </select>
-      </div>
+  </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Title</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Reported</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="issues-table" class="divide-y divide-gray-200">
-            <tr>
-              <td colspan="5" class="px-6 py-8 text-center text-gray-500">Loading issues...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <!-- Export Button -->
+  <div class="mb-6 flex justify-end">
+    <button onclick="exportCSV()"
+      class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+      Export Issues CSV
+    </button>
+  </div>
+
+  <!-- All Issues Table -->
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+      <h2 class="text-xl font-bold text-gray-900">All Issues</h2>
+      <select id="status-filter" onchange="filterIssues()" class="px-3 py-2 rounded-lg border border-gray-300 text-sm">
+        <option value="all">All Status</option>
+        <option value="REPORTED">Reported</option>
+        <option value="VERIFIED">Verified</option>
+        <option value="ASSIGNED">Assigned</option>
+        <option value="IN_PROGRESS">In Progress</option>
+        <option value="RESOLVED">Resolved</option>
+        <option value="CLOSED">Closed</option>
+      </select>
     </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Title</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Reported</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="issues-table" class="divide-y divide-gray-200">
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-gray-500">Loading issues...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
   </div>
 
   <!-- Issue Detail Modal -->
@@ -198,6 +213,31 @@
       el.classList.toggle('border-violet-500', !isError);
       el.classList.toggle('text-violet-700', !isError);
       setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    function exportCSV() {
+      const token = localStorage.getItem('up_token');
+      if (!token) return;
+
+      // Create a temporary link to download
+      const link = document.createElement('a');
+      link.href = `/api/analytics/export/issues?token=${token}`; // Token handling might need header, browser download usually GET. 
+      // JWT in header is standard. For download link, it's tricky. 
+      // Alternative: fetch blob and download.
+
+      fetch('/api/analytics/export/issues', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.blob())
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          link.href = url;
+          link.download = `issues_export_${new Date().toISOString().split('T')[0]}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        })
+        .catch(err => showToast('Failed to export CSV', true));
     }
 
     function logout() {
@@ -337,37 +377,90 @@
 
     async function loadData() {
       try {
-        // Load all issues
+        // Load Analytics Stats
+        const statsRes = await fetch('/api/analytics/dashboard-stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+
+          // Update Quick Stats
+          document.getElementById('stat-total').textContent = stats.overview.totalIssues || 0;
+
+          // Pending = Total - Resolved - Closed
+          const resolved = (stats.statusBreakdown.RESOLVED || 0) + (stats.statusBreakdown.CLOSED || 0);
+          const total = stats.overview.totalIssues || 0;
+          document.getElementById('stat-pending').textContent = total - resolved;
+          document.getElementById('stat-resolved').textContent = resolved;
+          document.getElementById('stat-users').textContent = stats.overview.totalUsers || 0; // Assuming API returns totalUsers
+
+          // Render Charts from Analytics Data
+          renderChartsFromStats(stats);
+        }
+
+        // Load all issues for table (keep existing logic for table)
         const issuesRes = await fetch('/api/admin/all-issues', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const issues = await issuesRes.json();
         allIssues = issues.map(i => ({ ...i, id: i._id || i.id }));
 
-        // Update stats
-        document.getElementById('stat-total').textContent = issues.length;
-        document.getElementById('stat-pending').textContent = issues.filter(i => !['RESOLVED', 'CLOSED'].includes(i.status)).length;
-        document.getElementById('stat-resolved').textContent = issues.filter(i => i.status === 'RESOLVED' || i.status === 'CLOSED').length;
-
-        // Load users count
-        try {
-          const usersRes = await fetch('/api/admin/users', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const users = await usersRes.json();
-          document.getElementById('stat-users').textContent = users.length;
-        } catch (e) {
-          document.getElementById('stat-users').textContent = '-';
-        }
-
         // Render table
         renderIssuesTable(allIssues);
 
-        // Render charts
-        renderCharts(issues);
       } catch (e) {
         console.error('Failed to load data:', e);
       }
+    }
+
+    function renderChartsFromStats(stats) {
+      // Destroy old charts
+      if (statusChartInstance) statusChartInstance.destroy();
+      if (categoryChartInstance) categoryChartInstance.destroy();
+
+      // Status Chart
+      const statusData = stats.statusBreakdown;
+      const labels = Object.keys(statusData);
+      const data = Object.values(statusData);
+
+      statusChartInstance = new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#f97316', '#10b981', '#6b7280']
+          }]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+
+      // Category Chart
+      const catData = stats.categoryBreakdown; // Array of {category, count}
+      categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+          labels: catData.map(c => c.category),
+          datasets: [{
+            label: 'Issues',
+            data: catData.map(c => c.count),
+            backgroundColor: '#8b5cf6'
+          }]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
     }
 
     function renderCharts(issues) {

@@ -78,7 +78,7 @@
             resultsDiv.innerHTML = '<div class="flex justify-center p-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>';
 
             try {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`/api/search/?q=${encodeURIComponent(query)}`);
                 const data = await res.json();
 
                 if (data.length === 0) {

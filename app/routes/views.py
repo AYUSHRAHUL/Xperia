@@ -8,7 +8,12 @@ views_bp = Blueprint("views", __name__)
 
 @views_bp.get("/")
 def home():
-    return render_template("home.html")
+    return render_template("index.html")
+
+
+@views_bp.get("/leaderboard")
+def leaderboard_view():
+    return render_template("leaderboard.html")
 
 
 @views_bp.get("/dashboard")
@@ -40,6 +45,11 @@ def worker_dashboard_view():
 @views_bp.get("/admin")
 def admin_dashboard_view():
     return render_template("admin_dashboard.html")
+
+
+@views_bp.get("/admin/users")
+def admin_users_view():
+    return render_template("admin_users.html")
 
 
 @views_bp.get("/issue/<issue_id>")
@@ -80,4 +90,14 @@ def contact_view():
 @views_bp.get("/faq")
 def faq_view():
     return render_template("faq.html")
+
+
+@views_bp.get("/privacy")
+def privacy_view():
+    return render_template("privacy.html")
+
+
+@views_bp.get("/terms")
+def terms_view():
+    return render_template("terms.html")
 

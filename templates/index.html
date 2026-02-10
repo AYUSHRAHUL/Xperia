@@ -159,20 +159,20 @@
 
             <div class="grid md:grid-cols-4 gap-6">
                 <div class="bg-white rounded-lg p-8 border border-gray-200 text-center">
-                    <p class="text-5xl font-bold text-blue-600 mb-2">12,500</p>
+                    <p id="stat-water" class="text-5xl font-bold text-blue-600 mb-2">-</p>
                     <p class="text-gray-600">Liters Water Saved</p>
                 </div>
                 <div class="bg-white rounded-lg p-8 border border-gray-200 text-center">
-                    <p class="text-5xl font-bold text-green-600 mb-2">8,750</p>
+                    <p id="stat-co2" class="text-5xl font-bold text-green-600 mb-2">-</p>
                     <p class="text-gray-600">kg CO₂ Reduced</p>
                 </div>
                 <div class="bg-white rounded-lg p-8 border border-gray-200 text-center">
-                    <p class="text-5xl font-bold text-amber-600 mb-2">15,200</p>
+                    <p id="stat-waste" class="text-5xl font-bold text-amber-600 mb-2">-</p>
                     <p class="text-gray-600">kg Waste Removed</p>
                 </div>
                 <div class="bg-white rounded-lg p-8 border border-gray-200 text-center">
-                    <p class="text-5xl font-bold text-violet-600 mb-2">17</p>
-                    <p class="text-gray-600">UN SDGs Supported</p>
+                    <p id="stat-issues" class="text-5xl font-bold text-violet-600 mb-2">-</p>
+                    <p class="text-gray-600">Issues Resolved</p>
                 </div>
             </div>
         </div>
@@ -236,6 +236,26 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        async function loadGlobalStats() {
+            try {
+                const res = await fetch('/api/impact/global');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // Animate numbers? Simple text update for now
+                if (document.getElementById('stat-water')) document.getElementById('stat-water').innerText = Math.round(data.totalWaterSaved || 0).toLocaleString();
+                if (document.getElementById('stat-co2')) document.getElementById('stat-co2').innerText = Math.round(data.totalCo2Reduced || 0).toLocaleString();
+                if (document.getElementById('stat-waste')) document.getElementById('stat-waste').innerText = Math.round(data.totalWasteRemoved || 0).toLocaleString();
+                if (document.getElementById('stat-issues')) document.getElementById('stat-issues').innerText = (data.totalIssuesResolved || 0).toLocaleString();
+            } catch (e) { console.error('Stats error', e); }
+        }
+
+        // Load immediately and refresh
+        loadGlobalStats();
+        setInterval(loadGlobalStats, 30000);
+    </script>
 </body>
 
 </html>

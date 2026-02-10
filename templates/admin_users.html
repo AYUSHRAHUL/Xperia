@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Urban Pulse — User Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center justify-between py-4 px-6">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-10 w-10 rounded-lg bg-gradient-to-br from-violet-600 to-violet-700 flex items-center justify-center font-bold text-white">
+                    UP</div>
+                <div>
+                    <div class="font-bold text-lg text-gray-900">Admin Portal</div>
+                    <p class="text-xs text-gray-600">User Management</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/admin" class="text-sm font-medium text-gray-600 hover:text-violet-600">Back to Dashboard</a>
+                <button onclick="logout()"
+                    class="px-4 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Users</h1>
+                <p class="text-gray-600">Manage citizen and worker accounts.</p>
+            </div>
+            <!-- Add User button could go here if implemented -->
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div class="p-4 border-b border-gray-200 flex gap-4">
+                <input type="text" id="search-input" placeholder="Search by name or email..."
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                <select id="role-filter" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">All Roles</option>
+                    <option value="citizen">Citizen</option>
+                    <option value="worker">Worker</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button onclick="loadUsers()"
+                    class="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm font-medium">Search</button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-3">Name</th>
+                            <th class="px-6 py-3">Email</th>
+                            <th class="px-6 py-3">Role</th>
+                            <th class="px-6 py-3">Points</th>
+                            <th class="px-6 py-3">Joined</th>
+                            <th class="px-6 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table" class="divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg w-full max-w-md p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Edit User</h3>
+            <input type="hidden" id="edit-id">
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input type="text" id="edit-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select id="edit-role" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="citizen">Citizen</option>
+                        <option value="worker">Worker</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Points</label>
+                    <input type="number" id="edit-points" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="closeEditModal()"
+                    class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onclick="saveUser()"
+                    class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('up_token');
+        if (!token) window.location.href = '/login';
+
+        async function loadUsers() {
+            const search = document.getElementById('search-input').value;
+            const role = document.getElementById('role-filter').value;
+
+            let url = '/api/users/?';
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+            if (role) url += `role=${role}`;
+
+            try {
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = await res.json();
+                renderTable(users);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderTable(users) {
+            const tbody = document.getElementById('users-table');
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No users found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(u => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 font-medium text-gray-900">${u.name}</td>
+          <td class="px-6 py-4 text-gray-600">${u.email}</td>
+          <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 border border-gray-200">${u.role}</span></td>
+          <td class="px-6 py-4 font-bold text-emerald-600">${u.points}</td>
+          <td class="px-6 py-4 text-gray-500 text-xs">${new Date(u.createdAt).toLocaleDateString()}</td>
+          <td class="px-6 py-4 text-right">
+            <button onclick="editUser('${u.id}', '${u.name}', '${u.role}', ${u.points})" class="text-blue-600 hover:underline mr-3">Edit</button>
+            <button onclick="deleteUser('${u.id}')" class="text-red-600 hover:underline">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+        }
+
+        function editUser(id, name, role, points) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-role').value = role;
+            document.getElementById('edit-points').value = points;
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        async function saveUser() {
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('edit-name').value;
+            const role = document.getElementById('edit-role').value;
+            const points = parseInt(document.getElementById('edit-points').value);
+
+            try {
+                const res = await fetch(`/api/users/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name, role, points })
+                });
+
+                if (res.ok) {
+                    closeEditModal();
+                    loadUsers();
+                } else {
+                    alert('Failed to update user');
+                }
+            } catch (e) {
+                alert('Error updating user');
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('Are you sure you want to delete this user? This cannot be undone.')) return;
+
+            try {
+                const res = await fetch(`/api/users/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    loadUsers();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to delete user');
+                }
+            } catch (e) {
+                alert('Error deleting user');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('up_token');
+            localStorage.removeItem('up_user');
+            window.location.href = '/login';
+        }
+
+        loadUsers();
+    </script>
+</body>
+
+</html>

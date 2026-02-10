@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Urban Pulse — Leaderboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 font-sans">
+
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" class="flex items-center gap-2 font-bold text-xl text-emerald-700">
+                <div class="h-8 w-8 rounded bg-emerald-600 text-white flex items-center justify-center text-sm">UP</div>
+                Urban Pulse
+            </a>
+            <nav class="hidden md:flex gap-6 text-sm font-medium text-gray-600">
+                <a href="/" class="hover:text-emerald-600">Home</a>
+                <a href="/public-dashboard" class="hover:text-emerald-600">Dashboard</a>
+                <a href="/leaderboard" class="text-emerald-600 font-bold">Leaderboard</a>
+                <a href="/about" class="hover:text-emerald-600">About</a>
+                <a href="/login"
+                    class="text-emerald-600 border border-emerald-600 px-4 py-2 rounded-lg hover:bg-emerald-50">Sign
+                    In</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto py-12 px-6">
+
+        <div class="text-center mb-12">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Community Leaderboard</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">Celebrating the top contributors who are making our city cleaner,
+                safer, and more sustainable. Earn points by reporting issues and helping verify them.</p>
+        </div>
+
+        <!-- Top 3 Podium -->
+        <div class="flex flex-col md:flex-row justify-center items-end gap-6 mb-16" id="podium-container">
+            <!-- Populated by JS -->
+        </div>
+
+        <!-- Full Leaderboard Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900">Top Contributors</h2>
+                <div class="text-sm text-gray-500">Updated daily</div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-600">
+                    <thead class="bg-gray-50 text-gray-900 font-semibold border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-4">Rank</th>
+                            <th class="px-6 py-4">Citizen</th>
+                            <th class="px-6 py-4 text-center">Issues Reported</th>
+                            <th class="px-6 py-4 text-right">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body" class="divide-y divide-gray-100">
+                        <!-- Rows populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        async function fetchLeaderboard() {
+            try {
+                const res = await fetch('/api/public/dashboard'); // Reusing or create a specific endpoint
+                // For now, let's assume we use public stats or a dedicated endpoint. 
+                // Better to use the endpoint I just created in public.py if it returns top contributors.
+                // Oh right, public.py's /dashboard endpoint returns `topContributors`.
+
+                const data = await res.json();
+                const contributors = data.topContributors || [];
+
+                renderPodium(contributors.slice(0, 3));
+                renderTable(contributors);
+
+            } catch (error) {
+                console.error('Error fetching leaderboard:', error);
+            }
+        }
+
+        function renderPodium(top3) {
+            const container = document.getElementById('podium-container');
+            if (top3.length < 3) return; // Simple check
+
+            const order = [1, 0, 2]; // 2nd, 1st, 3rd logic for visual podium
+            const podiumHTML = order.map(idx => {
+                const user = top3[idx];
+                if (!user) return '';
+
+                let height = 'h-32';
+                let color = 'bg-emerald-100';
+                let medal = '🥈';
+                let rank = 2;
+
+                if (idx === 0) { // 1st place
+                    height = 'h-40';
+                    color = 'bg-yellow-100';
+                    medal = '🥇';
+                    rank = 1;
+                } else if (idx === 2) { // 3rd place
+                    height = 'h-24';
+                    color = 'bg-orange-100';
+                    medal = '🥉';
+                    rank = 3;
+                }
+
+                return `
+                <div class="flex flex-col items-center w-full md:w-1/4">
+                    <div class="mb-2 font-bold text-gray-900 flex items-center gap-1">
+                        <span class="text-2xl">${medal}</span>
+                        ${user.name}
+                    </div>
+                    <div class="text-emerald-600 font-bold mb-2">${user.points} pts</div>
+                    <div class="${height} w-full ${color} rounded-t-xl flex items-end justify-center pb-4 border-t border-x border-gray-200 shadow-sm">
+                        <span class="text-3xl font-bold opacity-20">${rank}</span>
+                    </div>
+                </div>
+            `;
+            }).join('');
+
+            container.innerHTML = podiumHTML;
+        }
+
+        function renderTable(users) {
+            const tbody = document.getElementById('leaderboard-body');
+
+            const rows = users.map((user, index) => {
+                let rankBadge = `<span class="font-bold text-gray-500">#${index + 1}</span>`;
+                if (index === 0) rankBadge = '🥇';
+                if (index === 1) rankBadge = '🥈';
+                if (index === 2) rankBadge = '🥉';
+
+                return `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 text-xl">${rankBadge}</td>
+                    <td class="px-6 py-4 font-medium text-gray-900">${user.name}</td>
+                    <td class="px-6 py-4 text-center">${user.issuesReported || 0}</td>
+                    <td class="px-6 py-4 text-right font-bold text-emerald-600">${user.points}</td>
+                </tr>
+            `;
+            }).join('');
+
+            tbody.innerHTML = rows;
+        }
+
+        // Load on start
+        fetchLeaderboard();
+    </script>
+
+</body>
+
+</html>
